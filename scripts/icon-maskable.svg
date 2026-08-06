@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Maskable: фон во всю канву, глиф ужат в безопасную зону 80%,
+       иначе Android обрежет его под форму иконки лаунчера. -->
+  <rect width="512" height="512" fill="#0f172a"/>
+  <g transform="translate(256 256) scale(0.78) translate(-256 -256)"
+     fill="none" stroke="#f8fafc" stroke-width="26" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M150 168 l28 28 l52 -56"/>
+    <path d="M150 268 l28 28 l52 -56"/>
+    <path d="M290 182 h84"/>
+    <path d="M290 282 h84"/>
+    <path d="M150 382 h32"/>
+    <path d="M290 382 h84"/>
+  </g>
+</svg>

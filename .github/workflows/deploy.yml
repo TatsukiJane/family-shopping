@@ -1,0 +1,60 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Одновременно деплоим только одну сборку, но начатую не отменяем.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm test
+
+      - run: pnpm build
+        env:
+          # Сайт живёт по пути /<repo>/ — иначе ассеты и manifest не найдутся.
+          BASE_PATH: /${{ github.event.repository.name }}/
+          # Координаты приватного репозитория с данными. Это не секреты:
+          # токена в бандле нет, доступ даёт только PAT на устройстве.
+          VITE_DATA_OWNER: ${{ vars.VITE_DATA_OWNER }}
+          VITE_DATA_REPO: ${{ vars.VITE_DATA_REPO }}
+          VITE_DATA_BRANCH: ${{ vars.VITE_DATA_BRANCH || 'main' }}
+          VITE_DATA_PATH: ${{ vars.VITE_DATA_PATH || 'data/list.json' }}
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
