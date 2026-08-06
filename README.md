@@ -26,7 +26,12 @@
 3. Там же, в **Settings → Secrets and variables → Actions → Variables**,
    добавьте:
    - `VITE_DATA_OWNER` — ваш логин на GitHub,
-   - `VITE_DATA_REPO` — имя приватного репозитория с данными.
+   - `VITE_DATA_REPO` — имя приватного репозитория с данными,
+   - `VITE_DATA_BRANCH` — ветка, если она не `main`,
+   - `VITE_DATA_PATH` — путь к файлу, если он не `data/list.json`.
+
+   Переменные читаются на сборке, поэтому задайте их до первого пуша — иначе
+   приложение соберётся с пустыми координатами репозитория.
 4. Выпустите fine-grained PAT
    ([Settings → Developer settings](https://github.com/settings/personal-access-tokens)):
    доступ — только репозиторий с данными, разрешение — **Contents: Read and write**.
