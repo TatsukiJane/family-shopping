@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ExternalLink, History, RefreshCw } from 'lucide-react'
+import { RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   Sheet,
@@ -14,7 +14,6 @@ import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { MemberDot } from '@/components/MemberDot'
 import { RepoFields } from '@/screens/SetupScreen'
-import { fileUrl, historyUrl } from '@/lib/config'
 import { useApp, useMe, useMembers } from '@/store/useApp'
 import type { RepoConfig } from '@/lib/types'
 
@@ -96,13 +95,6 @@ function Root({ onOpen, onClose }: { onOpen: (panel: Panel) => void; onClose: ()
         <RefreshCw className="size-4" />
         Синхронизировать
       </Button>
-
-      <ExternalRow href={fileUrl(repo)} icon={<ExternalLink className="size-4" />}>
-        Открыть список на GitHub
-      </ExternalRow>
-      <ExternalRow href={historyUrl(repo)} icon={<History className="size-4" />}>
-        История изменений
-      </ExternalRow>
 
       <Separator className="my-3" />
 
@@ -216,28 +208,6 @@ function Row({ children, onClick }: { children: React.ReactNode; onClick: () => 
     >
       {children}
     </button>
-  )
-}
-
-function ExternalRow({
-  href,
-  icon,
-  children,
-}: {
-  href: string
-  icon: React.ReactNode
-  children: React.ReactNode
-}) {
-  return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noreferrer"
-      className="active:bg-accent flex h-12 w-full items-center gap-2 rounded-xl px-4 text-left transition-colors"
-    >
-      {icon}
-      {children}
-    </a>
   )
 }
 

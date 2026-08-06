@@ -27,14 +27,6 @@ export function repoUrl(config: RepoConfig): string {
   return `https://github.com/${config.owner}/${config.repo}`
 }
 
-export function fileUrl(config: RepoConfig): string {
-  return `${repoUrl(config)}/blob/${config.branch}/${config.path}`
-}
-
-export function historyUrl(config: RepoConfig): string {
-  return `${repoUrl(config)}/commits/${config.branch}/${config.path}`
-}
-
 /** Дебаунс отправки: не плодим коммит на каждое нажатие (ТЗ §6). */
 export const PUSH_DEBOUNCE_MS = 2_000
 
