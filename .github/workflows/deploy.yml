@@ -43,8 +43,6 @@ jobs:
           VITE_DATA_BRANCH: ${{ vars.VITE_DATA_BRANCH || 'main' }}
           VITE_DATA_PATH: ${{ vars.VITE_DATA_PATH || 'data/list.json' }}
 
-      - uses: actions/configure-pages@v5
-
       - uses: actions/upload-pages-artifact@v4
         with:
           path: dist
