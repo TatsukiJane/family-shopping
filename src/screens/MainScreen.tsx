@@ -12,7 +12,10 @@ import { Button } from '@/components/ui/button'
 import { BOUGHT_VISIBLE_MS, UNDO_WINDOW_MS } from '@/lib/config'
 import { liveItems } from '@/lib/ops'
 import { useApp, useMe } from '@/store/useApp'
-import type { Item } from '@/lib/types'
+import type { Item, SyncStatus } from '@/lib/types'
+
+/** Состояния, из которых помогают только настройки, а не повторная попытка. */
+const FIXABLE_IN_SETTINGS = new Set<SyncStatus>(['unauthorized', 'missing', 'error'])
 
 export function MainScreen() {
   const doc = useApp((state) => state.doc)
@@ -71,11 +74,12 @@ export function MainScreen() {
             <span className="text-sm font-medium">{me?.name ?? 'Список'}</span>
           </div>
           <div className="flex items-center gap-3">
-            {/* С недействительным токеном повторная синхронизация упадёт так же —
-                ведём туда, где его можно заменить. */}
+            {/* Повторная синхронизация с теми же токеном и координатами упадёт
+                так же — ведём туда, где их можно поправить, и где виден ответ
+                GitHub. Остальные состояния лечатся повтором. */}
             <SyncIndicator
               onClick={() =>
-                syncStatus === 'unauthorized' ? setSettingsOpen(true) : void syncNow()
+                FIXABLE_IN_SETTINGS.has(syncStatus) ? setSettingsOpen(true) : void syncNow()
               }
             />
             <Button

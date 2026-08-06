@@ -1,4 +1,4 @@
-import { AlertTriangle, Check, CloudOff, KeyRound, RefreshCw } from 'lucide-react'
+import { AlertTriangle, Check, CloudOff, KeyRound, RefreshCw, SearchX } from 'lucide-react'
 import { useApp } from '@/store/useApp'
 import { changes, plural } from '@/lib/plural'
 import { cn } from '@/lib/utils'
@@ -47,6 +47,14 @@ export function SyncIndicator({ onClick }: { onClick?: () => void }) {
     unauthorized: {
       icon: KeyRound,
       text: 'Токен недействителен',
+      tone: 'text-destructive',
+      spin: false,
+    },
+    // Отдельно от «токен недействителен»: тут виноваты координаты файла,
+    // и чинится это в настройках репозитория, а не заменой токена.
+    missing: {
+      icon: SearchX,
+      text: 'Репозиторий не найден',
       tone: 'text-destructive',
       spin: false,
     },

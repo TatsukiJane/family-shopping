@@ -33,6 +33,8 @@ interface AppState {
   repo: RepoConfig
   syncStatus: SyncStatus
   pending: number
+  /** Что именно ответил GitHub. Показываем в настройках, чтобы было что чинить. */
+  syncError: string | null
 
   init: () => Promise<void>
   completeSetup: (input: SetupInput) => Promise<void>
@@ -65,7 +67,8 @@ export const engine = new SyncEngine({
     return { token, config: repo }
   },
   onDoc: (doc) => useApp.setState({ doc }),
-  onStatus: (syncStatus, pending) => useApp.setState({ syncStatus, pending }),
+  onStatus: (syncStatus, pending, detail) =>
+    useApp.setState({ syncStatus, pending, syncError: detail ?? null }),
 })
 
 export const useApp = create<AppState>((set, get) => ({
@@ -76,6 +79,7 @@ export const useApp = create<AppState>((set, get) => ({
   repo: resolveRepoConfig(),
   syncStatus: 'idle',
   pending: 0,
+  syncError: null,
 
   async init() {
     const [token, profile, override, snapshot, pending] = await Promise.all([
@@ -206,6 +210,7 @@ export const useApp = create<AppState>((set, get) => ({
       repo: resolveRepoConfig(),
       syncStatus: 'idle',
       pending: 0,
+      syncError: null,
     })
   },
 }))

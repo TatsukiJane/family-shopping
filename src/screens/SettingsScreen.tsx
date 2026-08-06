@@ -53,10 +53,20 @@ function Root({ onOpen, onClose }: { onOpen: (panel: Panel) => void; onClose: ()
   const repo = useApp((state) => state.repo)
   const syncNow = useApp((state) => state.syncNow)
   const resetDevice = useApp((state) => state.resetDevice)
+  const syncError = useApp((state) => state.syncError)
   const me = useMe()
 
   return (
     <div className="space-y-2">
+      {/* Ответ GitHub как есть. Индикатор называет род ошибки, а починить её
+          можно только зная, что именно не сошлось. */}
+      {syncError && (
+        <div className="border-destructive/40 bg-destructive/5 space-y-1 rounded-xl border px-4 py-3">
+          <p className="text-destructive text-sm font-medium">Последняя ошибка</p>
+          <p className="text-muted-foreground text-sm break-words">{syncError}</p>
+        </div>
+      )}
+
       <Row onClick={() => onOpen('member')}>
         <span className="flex items-center gap-2">
           {me && <MemberDot color={me.color} />}

@@ -14,7 +14,9 @@ vite-plugin-pwa · Vitest. Пакетный менеджер — **pnpm**.
 pnpm install     # зависимости
 pnpm dev         # дев-сервер: http://localhost:5173/family-shopping/
 pnpm test        # Vitest, один прогон
+pnpm test:watch  # Vitest в режиме наблюдения
 pnpm typecheck   # tsc -b
+pnpm lint        # oxlint
 pnpm build       # tsc -b + vite build
 pnpm preview     # отдать сборку и проверить PWA
 pnpm icons       # перегенерировать PNG-иконки из public/favicon.svg
@@ -85,6 +87,13 @@ push():
 Триггеры: pull при старте, возврате фокуса и появлении сети; push с дебаунсом
 2 сек. Поллинга по таймеру нет — это лишние запросы и лишние коммиты.
 
+Ошибки различаются по коду и ведут в разные места ([src/lib/sync.ts](src/lib/sync.ts)):
+`401/403` → `unauthorized`, чинится заменой токена; `404` → `missing`, чинится
+правкой координат репозитория; `TypeError` → `offline`, чинить нечего. Текст
+ответа GitHub едет третьим аргументом `onStatus` в `syncError` и показывается
+в настройках: без него опечатка в пути и отозванный токен выглядят одинаково.
+Любой успешный статус гасит этот текст.
+
 ## Отклонения от ТЗ
 
 1. **PIN убран целиком** (ТЗ §2.2, §7, экран 2). Он не защищал данные, а стоил
@@ -141,21 +150,33 @@ push():
   с корня, собранная страница ищет ассеты по `/<repo>/`, получает SPA-фолбэк
   вместо `sw.js` и манифеста — и PWA молча перестаёт устанавливаться, причём
   сама страница выглядит рабочей.
-- **`test/setup.ts` лежит вне `src`.** Он тянет `node:crypto` (jsdom не даёт
-  `crypto.subtle`), а у приложения браузерные типы без `node`.
+- **`test/setup.ts` лежит вне `src`.** У приложения браузерные типы без `node`,
+  а `tsconfig.node.json` подключает `test` со своими. Внутри — одна строка
+  `import 'fake-indexeddb/auto'`; WebCrypto не нужен, идентификаторы даёт `ulid`.
+- **Источник Pages — только «GitHub Actions».** С «Deploy from a branch»
+  `actions/deploy-pages` создаёт деплой и тут же получает `Deployment cancelled`,
+  причём build остаётся зелёным и в логе нет ни слова о причине. Поэтому
+  в [deploy.yml](.github/workflows/deploy.yml) стоит `configure-pages`
+  с `enablement: true` — он переключает источник через API.
+- **Не ставьте `timeout-minutes` на job деплоя.** У `deploy-pages` свой таймаут
+  и внятная диагностика; внешний убивает шаг раньше и оставляет «cancelled».
 
 ## Структура
 
 ```
 src/
-  lib/        ядро: merge, sync, ops, github, db, b64, config, plural
+  lib/        ядро: types, merge, sync, ops, github, db, b64, config, plural, utils
   store/      zustand-стор, склеивает движок синхронизации с UI
-  components/ AddItemInput, ItemRow, BoughtSection, SyncIndicator, PinPad, MemberDot
+  components/ AddItemInput, ItemRow, BoughtSection, SyncIndicator, MemberDot
   components/ui/  shadcn
-  screens/    SetupScreen, PinScreen, MainScreen, SettingsScreen, ItemActions
-  test/       setup для Vitest (fake-indexeddb, WebCrypto)
+  screens/    SetupScreen, MainScreen, SettingsScreen, ItemActions
+test/         setup для Vitest (fake-indexeddb), лежит вне src
 scripts/      генерация иконок (sharp, запускается вручную)
 ```
+
+Вся доменная схема — в [src/lib/types.ts](src/lib/types.ts): `ListDoc`, `Item`,
+`Member`, `PendingOp`, `SyncStatus`, `RepoConfig`. PIN-экрана и `PinPad` нет,
+см. «Отклонения от ТЗ» §1.
 
 Тесты живут рядом с кодом (`*.test.ts`) и покрывают то, где ошибка не видна
 глазами: мерж, операции, очередь и разрешение конфликтов.

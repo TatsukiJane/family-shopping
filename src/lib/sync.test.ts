@@ -81,6 +81,7 @@ function fakeGithub() {
 
 function makeEngine() {
   const statuses: SyncStatus[] = []
+  const details: (string | null | undefined)[] = []
   let doc: ListDoc = emptyDoc()
 
   const engine = new SyncEngine({
@@ -88,10 +89,13 @@ function makeEngine() {
     onDoc: (next) => {
       doc = next
     },
-    onStatus: (status) => statuses.push(status),
+    onStatus: (status, _pending, detail) => {
+      statuses.push(status)
+      details.push(detail)
+    },
   })
 
-  return { engine, statuses, current: () => doc }
+  return { engine, statuses, details, current: () => doc }
 }
 
 async function seedLocal(doc: ListDoc): Promise<void> {
@@ -298,7 +302,7 @@ describe('pull', () => {
   })
 
   it('протухший токен разводится с ошибкой сети', async () => {
-    const { engine, statuses } = makeEngine()
+    const { engine, statuses, details } = makeEngine()
     vi.stubGlobal(
       'fetch',
       vi.fn(async () => new Response(JSON.stringify({ message: 'Bad credentials' }), { status: 401 })),
@@ -307,6 +311,43 @@ describe('pull', () => {
     await engine.pull()
 
     expect(statuses.at(-1)).toBe('unauthorized')
+    // Текст от GitHub доходит до интерфейса: без него ошибку нечем чинить.
+    expect(details.at(-1)).toBe('Bad credentials')
+    engine.stop()
+  })
+
+  it('не найденный репозиторий разводится с недействительным токеном', async () => {
+    const { engine, statuses, details } = makeEngine()
+    // 404 на репозитории, а не на файле: файла нет — это штатный случай,
+    // репозитория нет — опечатка в координатах, и лечится она в настройках.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(JSON.stringify({ message: 'Not Found' }), { status: 404 })),
+    )
+
+    await seedLocal(addItem(emptyDoc(), 'Кофе', 'aibek', NOW).doc)
+    await db.queue.push(addItem(emptyDoc(), 'Кофе', 'aibek', NOW).op)
+    await engine.push()
+
+    expect(statuses.at(-1)).toBe('missing')
+    expect(details.at(-1)).toBe('Not Found')
+    engine.stop()
+  })
+
+  it('успешная синхронизация гасит текст прошлой ошибки', async () => {
+    const { engine, statuses, details } = makeEngine()
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(JSON.stringify({ message: 'Bad credentials' }), { status: 401 })),
+    )
+
+    await engine.pull()
+    expect(statuses.at(-1)).toBe('unauthorized')
+
+    vi.stubGlobal('fetch', vi.fn(github.fetchImpl))
+    await engine.pull()
+
+    expect(details.at(-1)).toBeNull()
     engine.stop()
   })
 })

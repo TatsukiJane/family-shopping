@@ -32,6 +32,14 @@ jobs:
 
       - run: pnpm test
 
+      # enablement: true переключает источник Pages на GitHub Actions через API.
+      # Без флага шаг только читает конфигурацию: если в настройках стоит
+      # «Deploy from a branch», деплой создаётся и тут же получает
+      # «Deployment cancelled», хотя сборка зелёная.
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
       - run: pnpm build
         env:
           # Сайт живёт по пути /<repo>/ — иначе ассеты и manifest не найдутся.
@@ -50,9 +58,9 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
-    # Если Pages не подхватил деплой, задача молча висит в очереди десять минут
-    # и только потом падает по внутреннему таймауту действия. Обрываем раньше.
-    timeout-minutes: 5
+    # Своего таймаута тут нет намеренно: у deploy-pages есть внутренний (10 мин),
+    # и он печатает настоящую причину. Внешний таймаут убивал шаг раньше
+    # и оставлял в логе бесполезное «cancelled» вместо диагностики.
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

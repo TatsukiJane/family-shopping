@@ -10,7 +10,12 @@ export interface SyncDeps {
   getAuth: () => Promise<{ token: string; config: RepoConfig } | null>
   /** Список поменялся после мержа с удалённой версией. */
   onDoc: (doc: ListDoc) => void
-  onStatus: (status: SyncStatus, pending: number) => void
+  /**
+   * `detail` — сообщение от GitHub, когда оно есть. Без него ошибка выглядит
+   * одинаково при опечатке в пути, отозванном токене и упавшем API, и починить
+   * её из интерфейса невозможно.
+   */
+  onStatus: (status: SyncStatus, pending: number, detail?: string | null) => void
 }
 
 /**
@@ -219,19 +224,30 @@ export class SyncEngine {
       }
     }
 
-    await this.emitStatus('error')
+    // Три попытки подряд упёрлись в конфликт: кто-то пишет в файл чаще, чем
+    // мы успеваем перечитать. Следующий пуш разберётся, но состояние честное.
+    await this.emitStatus('error', undefined, 'Список меняется быстрее, чем сохраняется')
   }
 
   private async handleError(error: unknown): Promise<void> {
+    // Пропала сеть — это не ошибка, а ожидание. Текст тут только напугал бы.
     if (isOffline(error)) {
-      await this.emitStatus('offline')
+      await this.emitStatus('offline', undefined, null)
       return
     }
-    if (error instanceof GithubError && error.isUnauthorized) {
-      await this.emitStatus('unauthorized')
+    if (error instanceof GithubError) {
+      if (error.isUnauthorized) {
+        await this.emitStatus('unauthorized', undefined, error.message)
+        return
+      }
+      if (error.isMissing) {
+        await this.emitStatus('missing', undefined, error.message)
+        return
+      }
+      await this.emitStatus('error', undefined, error.message)
       return
     }
-    await this.emitStatus('error')
+    await this.emitStatus('error', undefined, error instanceof Error ? error.message : null)
   }
 
   /** Очередь пуста — «синхронизировано», иначе ждём следующего пуша. */
@@ -240,9 +256,17 @@ export class SyncEngine {
     await this.emitStatus(pending === 0 ? 'synced' : 'idle', pending)
   }
 
-  private async emitStatus(status: SyncStatus, pending?: number): Promise<void> {
+  /**
+   * `detail` по умолчанию `null`: любой успешный статус гасит текст прошлой
+   * ошибки, и он не висит в настройках после того, как всё починилось.
+   */
+  private async emitStatus(
+    status: SyncStatus,
+    pending?: number,
+    detail: string | null = null,
+  ): Promise<void> {
     this.status = status
-    this.deps.onStatus(status, pending ?? (await db.queue.count()))
+    this.deps.onStatus(status, pending ?? (await db.queue.count()), detail)
   }
 
   get currentStatus(): SyncStatus {
