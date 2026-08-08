@@ -62,7 +62,9 @@ function Root({ onOpen, onClose }: { onOpen: (panel: Panel) => void; onClose: ()
       {syncError && (
         <div className="border-destructive/40 bg-destructive/5 space-y-1 rounded-xl border px-4 py-3">
           <p className="text-destructive text-sm font-medium">Последняя ошибка</p>
-          <p className="text-muted-foreground text-sm break-words">{syncError}</p>
+          {/* Ответ GitHub уносят в переписку целиком, поэтому здесь выделение
+              разрешено обратно — в остальном интерфейсе оно выключено. */}
+          <p className="text-muted-foreground text-sm break-words select-text">{syncError}</p>
         </div>
       )}
 
